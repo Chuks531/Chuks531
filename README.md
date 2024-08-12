@@ -14,3 +14,29 @@ Here are some ideas to get you started:
 - 😄 Pronouns: ... His
 - ⚡ Fun fact: ... Love Resaerching and Discovering new things, meeting people, travelling, Soccer games and Playing Tennis.
 -->
+
+JSON code for permission creation and allowing or denying a service principal access to the Resources:
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "KmsActionsIfCalledViaChain",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey",
+                "kms:DescribeKey"
+            ],
+            "Resource": "arn:aws:kms:region:111122223333:key/my-example-key",
+            "Condition": {
+                "StringEquals": {
+                    "aws:CalledViaFirst": "cloudformation.amazonaws.com",
+                    "aws:CalledViaLast": "dynamodb.amazonaws.com"
+                }
+            }
+        }
+    ]
+}
