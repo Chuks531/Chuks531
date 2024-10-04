@@ -43,3 +43,6 @@ JSON code for permission creation and allowing or denying a service principal ac
 
 
 Link to my work on DataBricks: https://community.cloud.databricks.com/?o=3545719252917321#notebook/1484886008419367/command/1484886008419369:~:text=https%3A//databricks%2Dprod%2Dcloudfront.cloud.databricks.com/public/4027ec902e239c93eaaa8714f173bcfc/3545719252917321/1484886008419367/4620745677752253/latest.html
+
+My Data Engineering Project on building my dataframe with databricks on Sales data
+https://databricks-prod-cloudfront.cloud.databricks.com/public/4027ec902e239c93eaaa8714f173bcfc/3545719252917321/706228690563681/4620745677752253/latest.html 
