@@ -1,6 +1,6 @@
 {
     "name": "Chuks531-devcontainer",
-    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Any generic, debian-based image.
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "features": {
         "ghcr.io/devcontainers/features/go:1": {
             "version": "1.18"
@@ -9,5 +9,16 @@
             "version": "latest",
             "moby": true
         }
-    }
+    },
+    "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+    },
+    "postCreateCommand": "go version && docker --version",
+    "extensions": [
+        "golang.go",
+        "ms-azuretools.vscode-docker"
+    ]
 }
+
+
+
