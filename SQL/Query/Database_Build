@@ -1,0 +1,203 @@
+-- Script generated after creating the Model Schema using MySQL Workbench
+
+-- MySQL Workbench Forward Engineering
+
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+
+-- -----------------------------------------------------
+-- Schema Global_Store_DB
+-- -----------------------------------------------------
+
+-- -----------------------------------------------------
+-- Schema Global_Store_DB
+-- -----------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS `Global_Store_DB` DEFAULT CHARACTER SET utf8 ;
+USE `Global_Store_DB` ;
+
+-- -----------------------------------------------------
+-- Table `Global_Store_DB`.`Customers`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `Global_Store_DB`.`Customers` (
+  `Customer_ID` INT NOT NULL,
+  `Customer_Address` VARCHAR(255) NOT NULL,
+  `FirstName` VARCHAR(255) NOT NULL,
+  `ContactNumber` VARCHAR(45) NOT NULL,
+  `Email` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`Customer_ID`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `Global_Store_DB`.`DeliveryAddress`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `Global_Store_DB`.`DeliveryAddress` (
+  `Address_ID` INT NOT NULL,
+  `Street` VARCHAR(255) NOT NULL,
+  `PostCode` VARCHAR(45) NOT NULL,
+  `City` VARCHAR(45) NOT NULL,
+  `State` VARCHAR(45) NOT NULL,
+  `Country` VARCHAR(45) NOT NULL,
+  `Ship_ID` INT NOT NULL,
+  PRIMARY KEY (`Address_ID`),
+  INDEX `Ship_ID_idx` (`Address_ID` ASC, `Ship_ID` ASC) VISIBLE,
+  CONSTRAINT `Ship_ID`
+    FOREIGN KEY (`Address_ID` , `Ship_ID`)
+    REFERENCES `Global_Store_DB`.`Shipping` (`Address_ID` , `Ship_ID`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `Global_Store_DB`.`Shipping`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `Global_Store_DB`.`Shipping` (
+  `Ship_ID` INT NOT NULL,
+  `Ship_date` DATE NOT NULL,
+  `Ship_mode` VARCHAR(45) NOT NULL,
+  `Address_ID` INT NOT NULL,
+  `Ship_cost` DECIMAL NOT NULL,
+  `Shippingcol` VARCHAR(45) NULL,
+  PRIMARY KEY (`Ship_ID`),
+  INDEX `Address_ID_idx` (`Address_ID` ASC) VISIBLE,
+  CONSTRAINT `Address_ID`
+    FOREIGN KEY (`Address_ID`)
+    REFERENCES `Global_Store_DB`.`DeliveryAddress` (`Address_ID`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `Global_Store_DB`.`Orders`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `Global_Store_DB`.`Orders` (
+  `OrderID` INT NOT NULL,
+  `Customer_ID` INT NOT NULL,
+  `ProductID` INT NOT NULL,
+  `DeliveryID` INT NOT NULL,
+  `Quantity` INT NOT NULL,
+  `Total_cost` DECIMAL NOT NULL,
+  `Order_priority` VARCHAR(45) NOT NULL,
+  `Discount` DECIMAL NOT NULL,
+  `Ship_ID` INT NOT NULL,
+  `Order_date` DATETIME NOT NULL,
+  `Payment_status` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`OrderID`),
+  INDEX `Ship_ID_idx` (`Ship_ID` ASC) VISIBLE,
+  CONSTRAINT `Customer_ID`
+    FOREIGN KEY (`OrderID`)
+    REFERENCES `Global_Store_DB`.`Customers` (`Customer_ID`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `Ship_ID`
+    FOREIGN KEY (`Ship_ID`)
+    REFERENCES `Global_Store_DB`.`Shipping` (`Ship_ID`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `Global_Store_DB`.`Products`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `Global_Store_DB`.`Products` (
+  `ProductID` INT NOT NULL,
+  `ProductName` VARCHAR(255) NOT NULL,
+  `Amount_stock` INT NOT NULL,
+  `Price` DECIMAL NOT NULL,
+  `Category` VARCHAR(45) NOT NULL,
+  `Subcategory` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`ProductID`),
+  CONSTRAINT `ProductID`
+    FOREIGN KEY (`ProductID`)
+    REFERENCES `Global_Store_DB`.`Orders` (`OrderID`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+
+-- Creating my Dimension and Facts Tables to create a Star Schema (Dimension data model)
+
+CREATE TABLE FactOrders (
+  OrderID VARCHAR(50),
+  ProductID VARCHAR(50),
+  CustomerID VARCHAR(50),
+  DateKey INT,
+  Region VARCHAR(50),
+  Sales DECIMAL(10, 2),
+  Quantity INT,
+  Discount DECIMAL(5, 2),
+  Profit DECIMAL(10, 2),
+  PRIMARY KEY (OrderID, ProductID)
+);
+
+CREATE TABLE DateDim (
+  DateKey INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  ProductDate DATE
+);
+
+INSERT INTO DateDim (ProductDate)
+SELECT DISTINCT Order_Date FROM orders;
+
+CREATE TABLE CustomerDim (
+  CustomerID VARCHAR(50) PRIMARY KEY,
+  CustomerName VARCHAR(100),
+  Segment VARCHAR(50),
+  City VARCHAR(50),
+  State VARCHAR(50),
+  Country VARCHAR(50),
+  PostalCode VARCHAR(20)
+);
+
+INSERT INTO CustomerDim (CustomerID, CustomerName, Segment, City, State, Country, PostalCode)
+SELECT DISTINCT Customer_ID, Customer_Name, Segment, City, State, Country, Postal_Code
+FROM orders;
+
+CREATE TABLE ProductDim (
+  ProductID VARCHAR(50) PRIMARY KEY,
+  ProductName VARCHAR(255),
+  Category VARCHAR(50),
+  SubCategory VARCHAR(50)
+);
+
+select * from orders;
+
+update orders
+set product_id = '10013023'
+where id = 14;
+
+INSERT INTO ProductDim (ProductID, ProductName, Category, SubCategory)
+SELECT DISTINCT Product_ID, Product_Name, Category, Sub_Category
+FROM orders;
+
+CREATE TABLE RegionDim (
+  Region VARCHAR(50) PRIMARY KEY,
+  Market VARCHAR(50)
+);
+
+INSERT INTO RegionDim (Region, Market)
+SELECT DISTINCT Region, Market FROM orders;
+
+INSERT INTO FactOrders (OrderID, ProductID, CustomerID, DateKey, Region, Sales, Quantity, Discount, Profit)
+SELECT 
+  o.Order_ID,
+  o.Product_ID,
+  o.Customer_ID,
+  d.DateKey,
+  o.Region,
+  o.Sales,
+  o.Quantity,
+  o.Discount,
+  o.Profit
+FROM 
+  orders o
+JOIN 
+  DateDim d ON o.Order_Date = d.ProductDate;
