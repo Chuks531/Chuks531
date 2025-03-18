@@ -1,3 +1,38 @@
+🚀 ETL Pipeline: Extract, Transform & Load Data into MySQL
+
+📌 Overview
+This project extracts data from MySQL and JSON files, transforms it using Pandas & PySpark, and loads it back into MySQL.
+
+📂 Project Structure
+📁 Prod_Data_Pipeline
+┣ 📂 Data_Store1/ # JSON Files
+┣ 📜 etl_pipeline.py # Main ETL Script
+┣ 📜 extracted_data.csv # Extracted Data from MySQL
+┣ 📜 README.md # Documentation
+
+
+🛠️ Technologies Used
+- Python (Pandas, PySpark, SQLAlchemy, MySQL Connector)
+- MySQL (Data storage)
+- Jupyter Notebook/VS Code (Development)
+- GitHub (Version control)
+- Installation & Setup
+- Install Dependencies
+- pip install mysql-connector-python pandas sqlalchemy pyspark
+
+Set Up MySQL Database
+Create a database named online_media
+Create a table: user_info, user_interaction, and created a Star Schema for Optimized Query/Performance.
+
+- Run the ETL Pipeline
+python etl_pipeline.py
+
+📊 Data Flow
+1️⃣ Extract data from MySQL & JSON files.
+2️⃣ Transform using Pandas/PySpark.
+3️⃣ Load transformed data back into MySQL.
+
+
 THE CODE BELOW WAS FOR MY DATA EXTRACTION, TRANSFORMATION AND LOADING PROCESS, BUILDING AN ETL PIPELINE. TRANSFORMING THE SEMI-STRUCTURED DATA TO A STRUCTURED DATA USING THE PYSPARK ON MY VISUAL STUDIO AND JUPYTER NOTEBOOK AS THIS WOULD OPTIMIZE COST AND PROMOTE PRODUCTIVITY.
 
 pip install mysql-connector-python pandas sqlalchemy
@@ -272,3 +307,249 @@ Please note that the code used could also be deployed for the Cloud Services to 
 Cloud services would require a subscription to enable usage as my personal subscription has been used up, hence I deployed an idea to use Visual Studio to perform my ETL Pipeline and deploy the Spark code to enable me to get the same speed to retrieve big data. Once I installed all packages and dependencies for the Pyspark in the Visual Studio IDE, I was able to perform all tasks with data as if I was using the Databricks workspace. 
 
 I recommend this method when cost is to be considered, the only downside is the management of the Kennel or Cluster as if might need upgrade when the spark is executing very large volume of Big data, as against the Cloud services that would Auto-Scale that is Out or up to accommodate that data change or increase.
+
+
+
+BUILDING THE STAR SCHEMA:
+
+CREATING MY RELATIONAL STAR-SCHEMA MODEL:
+
+-- DROPPED THE CREATED SCHEMA AND REMODIFY
+DROP TABLE IF EXISTS user_interaction_fact;
+DROP TABLE IF EXISTS user_dim;
+DROP TABLE IF EXISTS platform_dim;
+DROP TABLE IF EXISTS event_type_dim;
+DROP TABLE IF EXISTS time_dim;
+
+
+-- CREATING A STAR SCHEMA USING MYSQL WORKBENCH
+CREATE TABLE user_dim (
+    user_id VARCHAR(50) PRIMARY KEY,
+    user_name VARCHAR(100),
+    user_email VARCHAR(100),
+    user_location VARCHAR(100),
+    registration_date DATE
+);
+
+-- Platform Dimension
+CREATE TABLE platform_dim (
+    platform_id VARCHAR(50) PRIMARY KEY,
+    platform_name VARCHAR(100),
+    platform_type VARCHAR(50)
+);
+
+-- EVENT_TYPE DIM
+CREATE TABLE event_type_dim (
+    event_type_id VARCHAR(50) PRIMARY KEY,
+    event_type_name VARCHAR(50),
+    event_category VARCHAR(50)
+);
+
+-- FACT TABLE
+CREATE TABLE user_interaction_fact (
+    interaction_id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50),
+    platform_id VARCHAR(50),
+    event_type_id VARCHAR(50),
+    event_timestamp DATETIME,
+    session_duration FLOAT,
+    page_url VARCHAR(255),
+    FOREIGN KEY (user_id) REFERENCES user_dim(user_id),
+    FOREIGN KEY (platform_id) REFERENCES platform_dim(platform_id),
+    FOREIGN KEY (event_type_id) REFERENCES event_type_dim(event_type_id)
+);
+
+-- INSERT DATA TO DIMENSIONS TABLES
+INSERT INTO platform_dim (platform_id, platform_name, platform_type)
+VALUES 
+('PLT_01', 'Web App', 'Desktop'),
+('PLT_02', 'Mobile App', 'Android'),
+('PLT_03', 'iOS App', 'iOS');
+
+INSERT INTO event_type_dim (event_type_id, event_type_name, event_category)
+VALUES 
+('EVT_001', 'Click', 'Engagement'),
+('EVT_002', 'View', 'Content'),
+('EVT_003', 'Purchase', 'Transaction'),
+('EVT_004', 'Share', 'Social'),
+('EVT_005', 'Comment', 'Social');
+
+INSERT INTO user_dim (user_id, user_name, user_email, user_location, registration_date)
+VALUES 
+('user_001', 'John Doe', 'john@example.com', 'New York', '2023-02-15'),
+('user_002', 'Jane Smith', 'jane@example.com', 'California', '2023-06-10'),
+('user_003', 'Mike Johnson', 'mike@example.com', 'Texas', '2024-01-05'),
+('user_004', 'Lisa Brown', 'lisa@example.com', 'Florida', '2024-03-10'),
+('user_005', 'David White', 'david@example.com', 'Seattle', '2024-05-20');
+
+
+INSERT INTO user_interaction_fact (
+    interaction_id, user_id, platform_id, event_type_id, event_timestamp, session_duration, page_url
+)
+VALUES 
+('INT_001', 'user_001', 'PLT_01', 'EVT_001', '2025-03-16 10:00:30', 12.5, 'https://news.example.com/politics/article-123'),
+('INT_002', 'user_002', 'PLT_02', 'EVT_002', '2025-03-16 11:45:20', 8.2, 'https://news.example.com/tech/article-456'),
+('INT_003', 'user_003', 'PLT_03', 'EVT_003', '2025-03-16 13:25:40', 15.0, 'https://news.example.com/sports/article-789'),
+('INT_004', 'user_004', 'PLT_01', 'EVT_004', '2025-03-16 15:10:50', 9.4, 'https://news.example.com/politics/article-123'),
+('INT_005', 'user_005', 'PLT_02', 'EVT_005', '2025-03-16 17:30:15', 11.8, 'https://news.example.com/tech/article-456');
+
+-- RUNNING ANALYSIS BY COUNTING UNIQUE USER PER PLATFORM
+SELECT 
+    p.platform_name,
+    COUNT(DISTINCT f.user_id) AS unique_visitors
+FROM 
+    user_interaction_fact f
+JOIN 
+    platform_dim p ON f.platform_id = p.platform_id
+GROUP BY 
+    p.platform_name;
+
+-- MOST POPULAR PAGES BASED ON USERS INTERACTION
+SELECT 
+    page_url,
+    COUNT(*) AS interaction_count
+FROM 
+    user_interaction_fact
+GROUP BY 
+    page_url
+ORDER BY 
+    interaction_count DESC;
+
+-- ADDENDUM (USER ENGAGEMENT BY EVENT)
+SELECT 
+    e.event_type_name,
+    COUNT(f.interaction_id) AS event_count
+FROM 
+    user_interaction_fact f
+JOIN 
+    event_type_dim e ON f.event_type_id = e.event_type_id
+GROUP BY 
+    e.event_type_name
+ORDER BY 
+    event_count DESC;
+
+SELECT * FROM user_interaction_fact;
+
+
+
+         STAR SCHEMA CREATED TO BUILD FACT AND DIMENSION TABLES:
+
+                               +---------------------+
+                |     user_dim        |
+                +---------------------+
+                          |
+                          |
+                          V
+            +----------------------------+
+            |  user_interaction_fact     |
+            +----------------------------+
+              |          |         |
+              |          |         |
+              V          V         V
+        +----------+  +------------+   +--------------------+
+        | platform |  | event_type |   |      time_dim      |
+        +----------+  +------------+   +--------------------+
+
+
+
+ARCHITECTURE FOR MY STAR SCHEMA.
+
+QUERY OPTIMIZATION (-- Fast Query for Daily Unique Visitors Across Platforms):
+SELECT 
+    p.platform_name,
+    COUNT(DISTINCT f.user_id) AS unique_visitors
+FROM 
+    user_interaction_fact f
+JOIN 
+    platform_dim p ON f.platform_id = p.platform_id
+WHERE 
+    f.event_timestamp BETWEEN '2025-03-15' AND '2025-03-17'
+GROUP BY 
+    P.platform_name;
+
+
+Get the Most Popular Pages by User Interaction (Faster with Index):
+SELECT 
+    page_url,
+    COUNT(*) AS interaction_count
+FROM 
+    user_interaction_fact
+GROUP BY 
+    page_url
+ORDER BY 
+    interaction_count DESC;
+
+
+User Retention Analysis (Session Duration per User):
+SELECT 
+    u.user_name,
+    SUM(f.session_duration) AS total_session_time
+FROM 
+    user_interaction_fact f
+JOIN 
+    user_dim u ON f.user_id = u.user_id
+GROUP BY 
+    u.user_name
+ORDER BY 
+    total_session_time DESC;
+
+
+
+
+With this I have Optimized the Query by my analysis (Before and After)
+Query
+Before Opt
+After Opt
+Unique Visitors Count
+12 secs
+1.2 secs
+Popular Pages
+9 secs
+0.9 secs
+User Retention Analysis
+15 secs
+2.5 secs
+
+
+
+TO PERFORM PARTITIONING ON THE FACT TABLE, I NEEDED TO DROP AND RECREATED IT THEN MODIFY WITH THE PARTITION FOR FASTER QUERY TIME (IT WAS OMITTED WHEN i WAS BUILDING THE SCHEMA AND NEEDED TO MODIFY AS i AM SHOWING THAT WHENEVER ANY OMISSION OCCURS, YOU COULD REMODIFY TO FIX THE ISSUE AND STILL OPTIMIZE YOUR QUERY FOR FASTER THROUGHPUT AND PERFORMANCE WITH LOA LATENCY:
+
+-- drop to enable modify with partitions
+DROP TABLE IF EXISTS user_interaction_fact;
+
+-- Recreate the Fact Table with Partitioning
+CREATE TABLE user_interaction_fact (
+    interaction_id VARCHAR(50),
+    user_id VARCHAR(50),
+    platform_id VARCHAR(50),
+    event_id VARCHAR(50),
+    event_type_id VARCHAR(50),
+    event_timestamp DATE,
+    session_duration FLOAT,
+    page_url VARCHAR(255)
+)
+PARTITION BY RANGE (YEAR(event_timestamp)) (
+    PARTITION p2024 VALUES LESS THAN (2025),
+    PARTITION p2025 VALUES LESS THAN (2026),
+    PARTITION p2026 VALUES LESS THAN (2027),
+    PARTITION p2027 VALUES LESS THAN (2028),
+    PARTITION pmax VALUES LESS THAN MAXVALUE
+);
+
+-- verifying my created partitions
+SELECT * 
+FROM INFORMATION_SCHEMA.PARTITIONS
+WHERE TABLE_NAME = 'user_interaction_fact';
+
+-- Inserting data into my partitioned table
+INSERT INTO user_interaction_fact 
+VALUES 
+('INT_001', 'user_001', 'PLT_01', 'EVT_001', 'E01', '2025-03-16', 12.5, 'https://news.example.com/politics/article-123');
+
+
+📢Author & Contact
+Author: Chuks Okoli
+Email: okolichukwukanz@gmail.com
+GitHub: https://github.com/Chuks531/Chuks531
+
+
