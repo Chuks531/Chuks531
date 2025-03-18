@@ -1,0 +1,274 @@
+THE CODE BELOW WAS FOR MY DATA EXTRACTION, TRANSFORMATION AND LOADING PROCESS, BUILDING AN ETL PIPELINE. TRANSFORMING THE SEMI-STRUCTURED DATA TO A STRUCTURED DATA USING THE PYSPARK ON MY VISUAL STUDIO AND JUPYTER NOTEBOOK AS THIS WOULD OPTIMIZE COST AND PROMOTE PRODUCTIVITY.
+
+pip install mysql-connector-python pandas sqlalchemy
+
+import pandas as pd
+import mysql.connector
+from sqlalchemy import create_engine
+import os
+
+# Did some testing of MySQL Connection with Python by reading data from Table and outputting it with the function: print(df).
+host = "127.0.0.1"  
+user = "root2"
+password = "Colkim234#"
+database = "online_media"
+table_name = "user_info"
+
+
+engine = create_engine(f"mysql+mysqlconnector://{user}:{password}@{host}/{database}")
+
+
+# Extracting data from MySQL table into a Pandas DataFrame
+query = f"SELECT * FROM user_info;"
+df = pd.read_sql(query, con=engine)
+
+
+print(df)
+OUTPUT:
+ user_id  timestamp                                           page_url  \
+0       2 2025-03-13          https://news.example.com/tech/article-456   
+1       3 2025-03-15        https://news.example.com/sports/article-789   
+2       4 2025-03-16  https://news.example.com/entertainment/article...   
+
+    action device_type                  referrer session_id  
+0    share     desktop  https://searchengine.com     abc123  
+1     like      tablet      https://facebook.com     xbz689  
+2  comment      laptop       https://twitter.com     pqr456  
+
+df.to_csv("extracted_data.csv", index=False)
+
+
+print("Data successfully extracted and saved to CSV!")
+OUTPUT: 
+df.to_csv("extracted_data.csv", index=False)
+
+print("Data successfully extracted and saved to CSV!")
+
+# Defining the json file directory in my local machine
+json_folder = r"C:\Users\Chuks\Downloads\Prod_Data_Pipeline\Data_Store1"
+
+# Read all Json Files by lsiting the files in the directory and executing a loop to loop into the directory
+
+
+json_files = [f for f in os.listdir(json_folder) if f.endswith('.json')]
+
+
+for json_file in json_files:
+    file_path = os.path.join(json_folder, json_file)
+
+# This helps read the json data into a Pandas DataFrame and at same time handle any potential errors, using the Try block.
+try:
+    df = pd.read_json(file_path)
+    print(df.head())
+except ValueError as e:
+    print(f"Error reading JSON: {e}")
+OUTPUT:
+   user_id                 timestamp  \
+0  user_001 2025-02-15 10:45:30+00:00   
+1  user_004 2025-01-15 11:10:45+00:00   
+2  user_007 2025-03-18 11:10:45+00:00   
+3  user_003 2025-03-16 11:10:45+00:00   
+
+                                      page_url action device_type  \
+0    https://news.example.com/tech/article-001   read     desktop   
+1    https://news.example.com/news/article-003   read     Monitor   
+2  https://news.example.com/global/article-003  share      Mobile   
+3  https://news.example.com/events/article-003  click     andriod   
+
+                  referrer session_id  
+0      https://twitter.com     xzy401  
+1       https://google.com     cdz013  
+2       https://tiktok.com     cdz023  
+3  https://supersports.com     cdz003  
+
+pip install pyspark
+
+# Reading all Json files in the Directory, will first import some Pyspark packages and perform some transformations
+# Reading all Json files in the Directory, will first import some Pyspark packages and perform some transformations
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, to_timestamp
+
+
+# Initialize the SparkSession
+spark = SparkSession.builder \
+    .appName("JSON to Structured Data") \
+    .config("spark.jars", r"C:\spark\spark-3.5.4-bin-hadoop3\mysql-connector-j-9.2.0\mysql-connector-j-9.2.0.jar") \
+    .getOrCreate()
+
+
+# Reading all the Json files from the directory in my local machine
+
+
+input_path = r"C:\Users\Chuks\Downloads\Prod_Data_Pipeline\Data_Store1\*"
+df = spark.read.json(input_path)
+
+
+
+# Transforming the data by Defining the Schema
+
+
+df_transformed = df.select(
+    col("user_id").alias("USER_ID"),
+    col("timestamp").alias("EVENT_TIMESTAMP"),
+    col("page_url").alias("PAGE_URL"),
+    col("action").alias("EVENT_TYPE"),
+    col("device_type").alias("DEVICE_TYPE"),
+    col("referrer").alias("REFERRER"),
+    col("session_id").alias("SESSION_ID")
+)
+
+
+# Show the defined schema
+df_transformed.printSchema()
+df_transformed.show()
+
+# Write the transformed data into MySQL Database
+mysql_url = "jdbc:mysql://127.0.0.1:3306/online_media"
+mysql_properties = {
+    "user": "root2",
+    "password": "Colkim234#",
+    "driver": "com.mysql.cj.jdbc.Driver"
+}
+# If I want to replace the existing data in the DB with "Overwrite" but "Append" will add to existing data...best use case is to perform incremental load.
+df_transformed.write \
+    .format("jdbc") \
+    .option("url", mysql_url) \
+    .option("dbtable", "user_info") \
+    .option("user", mysql_properties["user"]) \
+    .option("password", mysql_properties["password"]) \
+    .option("driver", mysql_properties["driver"]) \
+    .mode("append") \
+    .save()
+
+
+CODE EXPLANATION:
+This Python ETL (Extract, Transform, Load) pipeline extracts user interaction data from MySQL and JSON files, transforms the data using Pandas and PySpark, and loads it back into MySQL for further analytics. Below is a breakdown of the code, step by step.
+
+pip install mysql-connector-python pandas sqlalchemy Pyspark:
+mysql-connector-python → Allows MySQL database connection in Python.
+pandas → Used for data manipulation and transformation.
+sqlalchemy → Provides an abstraction for connecting to MySQL.
+Pyspark → Used for processing large-scale JSON data.
+
+Extracting Data from MySQL Database:
+import pandas as pd
+import mysql.connector
+from sqlalchemy import create_engine
+import os
+
+host = "127.0.0.1"  
+user = "root2"
+password = "Colkim234#"
+database = "online_media"
+table_name = "user_info"
+
+engine = create_engine(f"mysql+mysqlconnector://{user}:{password}@{host}/{database}")
+
+query = f"SELECT * FROM user_info;"
+df = pd.read_sql(query, con=engine)
+
+print(df)
+df.to_csv("extracted_data.csv", index=False)
+
+print("Data successfully extracted and saved to CSV!")
+
+ Breakdown: 
+Establishes a connection to the MySQL database using SQLAlchemy.
+Executes a SQL query to fetch all records from the user_info table.
+Stores the extracted data into a Pandas DataFrame (df).
+Saves the data as a CSV file (extracted_data.csv) for further  processing.
+
+Extracting Multiple JSON Data from my Directory after populating the file and saving into my directory using some script via VS code. 
+json_folder = r"C:\Users\Chuks\Downloads\Prod_Data_Pipeline\Data_Store1"
+
+json_files = [f for f in os.listdir(json_folder) if f.endswith('.json')]
+
+for json_file in json_files:
+    file_path = os.path.join(json_folder, json_file)
+
+try:
+    df = pd.read_json(file_path)
+    print(df.head()) 
+except ValueError as e:
+    print(f"Error reading JSON: {e}")
+
+
+Break-Down:
+Reads all JSON files from the specified directory (json_folder).
+Loops through the directory to extract JSON file paths.
+Uses pd.read_json() to read JSON data into Pandas.
+Handles errors using a try-except block to avoid crashes if an invalid JSON format is encountered.
+
+Using PySpark to Process JSON Data:
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, to_timestamp
+
+spark = SparkSession.builder \
+    .appName("JSON to Structured Data") \
+    .config("spark.jars", r"C:\spark\spark-3.5.4-bin-hadoop3\mysql-connector-j-9.2.0\mysql-connector-j-9.2.0.jar") \
+    .getOrCreate()
+
+input_path = r"C:\Users\Chuks\Downloads\Prod_Data_Pipeline\Data_Store1\*" 
+df = spark.read.json(input_path)
+
+Break-Down:
+Initializes a PySpark session (SparkSession.builder).
+Configures the MySQL connector for database integration.
+Reads all JSON files in the directory into a Spark DataFrame.
+
+
+Transforming the Data:
+df_transformed = df.select(
+    col("user_id").alias("USER_ID"),
+    col("timestamp").alias("EVENT_TIMESTAMP"),
+    col("page_url").alias("PAGE_URL"),
+    col("action").alias("EVENT_TYPE"),
+    col("device_type").alias("DEVICE_TYPE"),
+    col("referrer").alias("REFERRER"),
+    col("session_id").alias("SESSION_ID")
+)
+
+df_transformed.printSchema()
+df_transformed.show()
+
+
+Break-Down:
+Selects relevant columns from the raw JSON data.
+Renames the columns to match database conventions.
+Displays the schema and transformed data for verification
+
+Loading the structured Data into MySQL DB:
+mysql_url = "jdbc:mysql://127.0.0.1:3306/online_media"
+mysql_properties = {
+    "user": "root2",
+    "password": "Colkim234#",
+    "driver": "com.mysql.cj.jdbc.Driver"
+}
+
+df_transformed.write \
+    .format("jdbc") \
+    .option("url", mysql_url) \
+    .option("dbtable", "user_info") \
+    .option("user", mysql_properties["user"]) \
+    .option("password", mysql_properties["password"]) \
+    .option("driver", mysql_properties["driver"]) \
+    .mode("append") \
+    .save()
+
+Break-Down:
+Configures MySQL database connection using JDBC.
+Writes the transformed data into the user_info table.
+Uses "append" mode to add new records without overwriting existing data (use "overwrite" if full replacement is needed).
+
+Additional Information to share:
+End-to-End ETL Pipeline → Extracts data from MySQL and JSON files, transforms it, and loads it back into MySQL.
+Uses Pandas for small-scale processing and PySpark for large-scale data transformation.
+Error handling ensures robustness.
+Scalable & Cloud-Compatible → Can be adapted for AWS S3, Google Cloud Storage, or Azure Blob Storage.
+Please note that the code used could also be deployed for the Cloud Services to ensure scalability and higher performance Metrics. The code used is compatible for the Cloud Services, like Databricks(AWS, AZURE & GCP), AWS GLUE Job, Azure Data Factory, Cloudproc for GCP, BigQuery, Snowflake family, AWS Lambda etc. 
+
+Cloud services would require a subscription to enable usage as my personal subscription has been used up, hence I deployed an idea to use Visual Studio to perform my ETL Pipeline and deploy the Spark code to enable me to get the same speed to retrieve big data. Once I installed all packages and dependencies for the Pyspark in the Visual Studio IDE, I was able to perform all tasks with data as if I was using the Databricks workspace. 
+
+I recommend this method when cost is to be considered, the only downside is the management of the Kennel or Cluster as if might need upgrade when the spark is executing very large volume of Big data, as against the Cloud services that would Auto-Scale that is Out or up to accommodate that data change or increase.
